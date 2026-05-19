@@ -1,11 +1,15 @@
-import { convertFileSrc } from "@tauri-apps/api/core";
-import { createResource, Show } from "solid-js";
+import { createEffect, createResource, onCleanup, Show } from "solid-js";
 import { Close, Play, Settings } from "@/libraries/Icons.jsx";
 import { openGame } from "@/services/gameService.js";
 import { closeModal } from "@/stores/modalStore.js";
 import { triggerToast } from "@/stores/toastStore.js";
+import {
+  getCachedGameImageSource,
+  getGameImageSource,
+  movePreloadedImageElement,
+  restorePreloadedImageElement,
+} from "@/utils/preloadGameImages.js";
 import { translateText } from "@/utils/translateText";
-import { getImagePath } from "../../data/storage/imageStroage";
 import { libraryData } from "../../stores/libraryStore";
 import { openModal } from "../../stores/modalStore";
 import { selectedGame, setSelectedGame } from "../../stores/selectedGameStore";
@@ -13,35 +17,64 @@ import { EditGameModal } from "./EditGameModal";
 
 export function GamePopUpModal() {
   const game = () => libraryData.games[selectedGame()];
+  let heroImageTarget;
+  let logoImageTarget;
 
   const [heroImageFile] = createResource(
     () => libraryData.games[selectedGame()]?.heroImagePath,
-    async (filePath) => {
+    (filePath) => {
       if (!filePath) return null;
-      const path = await getImagePath({ type: "hero", fileName: filePath });
-      return convertFileSrc(path);
+      return getCachedGameImageSource("hero", filePath) ?? getGameImageSource("hero", filePath);
     },
   );
 
   const [logoImageFile] = createResource(
     () => libraryData.games[selectedGame()]?.logoImagePath,
-    async (filePath) => {
+    (filePath) => {
       if (!filePath) return null;
-      const path = await getImagePath({ type: "logo", fileName: filePath });
-      return convertFileSrc(path);
+      return getCachedGameImageSource("logo", filePath) ?? getGameImageSource("logo", filePath);
     },
   );
 
   const hero = () => heroImageFile();
   const logo = () => logoImageFile();
 
+  createEffect(() => {
+    const currentGame = game();
+    if (!currentGame) return;
+
+    if (heroImageTarget && currentGame.heroImagePath) {
+      void movePreloadedImageElement(
+        "hero",
+        currentGame.heroImagePath,
+        heroImageTarget,
+        "aspect-96/31 h-[350px] max-large:h-[270px]",
+      );
+    }
+
+    if (logoImageTarget && currentGame.logoImagePath) {
+      void movePreloadedImageElement(
+        "logo",
+        currentGame.logoImagePath,
+        logoImageTarget,
+        "relative aspect-auto max-h-[100px] max-w-[400px] max-large:max-h-[70px] max-large:max-w-[300px]",
+      );
+    }
+  });
+
+  onCleanup(() => {
+    const currentGame = game();
+    if (!currentGame) return;
+
+    restorePreloadedImageElement("hero", currentGame.heroImagePath);
+    restorePreloadedImageElement("logo", currentGame.logoImagePath);
+  });
+
   return (
-    <div class="flex h-screen w-screen flex-col items-center justify-center bg-[#d1d1d166] px-[40px] dark:bg-[#12121266]">
+    <div class="flex h-screen w-screen flex-col items-center justify-center bg-overlay px-[40px]">
       <img src={hero()} alt="" class="absolute -z-10 h-[350px] opacity-[0.4] blur-[80px] max-large:h-[270px]" />
       <div class="relative">
         <div class="absolute right-[30px] bottom-[30px] flex gap-[15px]">
-          <button type="button" class="invisible-button-gamepopup pointer-events-none" />
-
           <Show
             when={game()?.gameLocation}
             fallback={
@@ -105,20 +138,13 @@ export function GamePopUpModal() {
             <Close />
           </button>
         </div>
-        <Show
-          when={hero()}
-          fallback={<div class="aspect-96/31 h-[350px] bg-[#f1f1f1] max-large:h-[270px] dark:bg-[#1c1c1c]" />}
-        >
-          <img src={hero()} alt="" class="aspect-96/31 h-[350px] max-large:h-[270px]" />
+        <Show when={hero()} fallback={<div class="aspect-96/31 h-[350px] bg-media-placeholder max-large:h-[270px]" />}>
+          <div ref={heroImageTarget} class="aspect-96/31 h-[350px] max-large:h-[270px]" />
         </Show>
 
         <Show when={logo()}>
           <div class="absolute bottom-[30px] left-[25px] flex h-[70px] w-[300px] items-center align-middle max-large:bottom-[15px]">
-            <img
-              src={logo()}
-              alt=""
-              class="relative aspect-auto max-h-[100px] max-w-[400px] max-large:max-h-[70px] max-large:max-w-[300px]"
-            />
+            <div ref={logoImageTarget} />
           </div>
         </Show>
       </div>

@@ -14,13 +14,12 @@ import {
 import { libraryData } from "@/stores/libraryStore";
 import { closeModal, modalShowCloseConfirm } from "@/stores/modalStore.js";
 import { triggerToast } from "@/stores/toastStore.js";
-import { checkIfConnectedToInternet } from "@/utils/internet.js";
-import { getExecutableFileName } from "@/utils/paths.js";
+import { checkIfConnectedToInternet, checkIfConnectedToServer } from "@/utils/internet.js";
+import { getExecutableFileName, getExecutableParentFolder } from "@/utils/paths.js";
 import { translateText } from "@/utils/translateText";
 import { userIsTabbing, windowWidth } from "../../stores/applicationStore";
 import { openModal } from "../../stores/modalStore";
 import { LoadingModal } from "./Loading";
-import { checkIfConnectedToServer } from "@/utils/internet.js";
 
 export function NewGameModal() {
   const [showGridImageLoading, setShowGridImageLoading] = createSignal(false);
@@ -201,16 +200,19 @@ export function NewGameModal() {
 
             <SaveDisk />
           </button>
+          {
+            // bumping up z index for this button cause the tooltip gets hidden
+          }
           <button
             type="button"
-            class="tooltip-delayed-bottom btn w-max"
+            class="tooltip-delayed-bottom btn z-99999 w-max"
             onClick={() => {
               closeModal();
             }}
             data-tooltip={translateText("close")}
           >
             {modalShowCloseConfirm() ? (
-              <span class="whitespace-nowrap text-[#FF3636]">{translateText("hit again to confirm")}</span>
+              <span class="danger-text whitespace-nowrap">{translateText("hit again to confirm")}</span>
             ) : (
               <Close />
             )}
@@ -251,7 +253,7 @@ export function NewGameModal() {
           onContextMenu={() => {
             setGridImage({ type: "local", data: undefined });
           }}
-          class="tooltip-center aspect-2/3 h-[400px] cursor-pointer overflow-hidden bg-[#f1f1f1] p-0 max-large:h-[300px] dark:bg-[#1c1c1c]"
+          class="tooltip-center aspect-2/3 h-[400px] cursor-pointer overflow-hidden bg-media-placeholder p-0 max-large:h-[300px]"
           data-tooltip={
             gridImage().type === "remote"
               ? showGridImageLoading() === false
@@ -310,7 +312,7 @@ export function NewGameModal() {
               onContextMenu={() => {
                 setHeroImage({ type: "local", data: undefined });
               }}
-              class="tooltip-center aspect-67/26 h-[350px] cursor-pointer bg-[#f1f1f1] p-0 max-large:h-[250px] dark:bg-[#1c1c1c]"
+              class="tooltip-center aspect-67/26 h-[350px] cursor-pointer bg-media-placeholder p-0 max-large:h-[250px]"
               data-tooltip={
                 heroImage().type === "remote"
                   ? showHeroImageLoading() === false
@@ -383,9 +385,7 @@ export function NewGameModal() {
                 }
               }}
               class={`absolute! tooltip-center bottom-[70px] left-[20px] z-100 h-[90px] w-[250px] cursor-pointer p-[2px]! max-large:h-[90px] max-large:w-[243px] ${
-                logoImage().data
-                  ? "outline-none outline-2! outline-[#E8E8E880]! hover:bg-[#E8E8E84D] hover:outline-dashed focus:bg-[#E8E8E84D] !outline:dark:bg-[#27272780] dark:focus:bg-[#2727274D] dark:hover:bg-[#2727274D]"
-                  : "bg-[#E8E8E8] dark:bg-[#272727]!"
+                logoImage().data ? "asset-filled" : "asset-empty"
               } `}
               data-tooltip={
                 logoImage().type === "remote"
@@ -414,8 +414,6 @@ export function NewGameModal() {
               />
             </button>
           </div>
-
-          {/* h-[40px] w-[40px] bg-[#E8E8E8]! dark:bg-[#272727]! */}
 
           <div class="flex cursor-pointer items-center gap-3">
             <button
@@ -446,9 +444,7 @@ export function NewGameModal() {
                 }
               }}
               class={`group tooltip-bottom relative cursor-pointer p-0 ${
-                iconImage().data
-                  ? "outline-none outline-2! outline-[#E8E8E880]! hover:outline-dashed !outline:dark:bg-[#27272780]"
-                  : "bg-[#E8E8E8] dark:bg-[#272727]!"
+                iconImage().data ? "asset-filled-minimal" : "asset-empty"
               }`}
               data-tooltip={
                 iconImage().type === "remote"
@@ -477,7 +473,7 @@ export function NewGameModal() {
               />
             </button>
 
-            <div class="flex grow items-center bg-[#E8E8E8cc] backdrop-blur-[10px] dark:bg-[#272727cc]">
+            <div class="glass-input flex grow items-center">
               <input
                 aria-autocomplete="none"
                 type="text"
@@ -554,8 +550,20 @@ export function NewGameModal() {
               onClick={() => {
                 selectGameLocation(setGameLocation);
               }}
-              onContextMenu={() => {
-                setGameLocation(undefined);
+              onAuxClick={(e) => {
+                e.preventDefault();
+                if (e.button === 2) {
+                  setGameLocation(undefined);
+                } else if (e.button === 1) {
+                  if (!gameLocation()) return;
+                  try {
+                    invoke("open_location", {
+                      location: getExecutableParentFolder(gameLocation()),
+                    });
+                  } catch (e) {
+                    triggerToast(e.message);
+                  }
+                }
               }}
               class="btn mt-0! w-max"
             >
@@ -575,7 +583,7 @@ export function NewGameModal() {
       </div>
 
       <Show when={searchResults()}>
-        <div class="gameInput flex h-12 w-full gap-2 bg-[#E8E8E8cc] px-2 backdrop-blur-[10px] dark:bg-[#272727cc]">
+        <div class="gameInput glass-input flex h-12 w-full gap-2 px-2">
           <button
             type="button"
             onClick={() => {

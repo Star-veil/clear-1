@@ -9,16 +9,12 @@
   content: attr(data-tooltip);
   width: max-content;
   padding: 2px 8px;
-  z-index: 999999;
+  z-index: 99999999;
   backdrop-filter: blur(10px);
   opacity: 0;
   display: none;
 
-  @apply border-2 border-solid bg-[#E8E8E8cc] text-black border-[#00000010];
-}
-
-.dark [class*="tooltip-"]::after {
-  @apply bg-[#272727cc] text-white border-[#ffffff10];
+  @apply border-2 border-solid border-tooltip-border bg-tooltip text-foreground;
 }
 
 /* visibility ---------------- */
@@ -69,6 +65,7 @@ body.user-is-tabbing [class*="tooltip-delayed-"]:focus::after {
 
 .tooltip-right::after,
 .tooltip-delayed-right::after {
+  top: 5%;
   right: 5%;
   transform: translate(0%, -17%);
 }

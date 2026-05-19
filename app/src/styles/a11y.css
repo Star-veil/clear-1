@@ -1,9 +1,8 @@
 /* ACCESSIBILITY ---------------------------- */
 
-body.user-is-tabbing button:not(.invisible-button-gamepopup):focus,
 body.user-is-tabbing input:focus,
 body.user-is-tabbing select:focus {
-  outline: 1px solid var(--outline-color);
+  outline: 1px solid var(--focus-ring);
 }
 
 /* REDUCED MOTION --------------------------- */

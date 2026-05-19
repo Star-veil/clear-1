@@ -21,6 +21,7 @@ import { initApplicationStore, windowWidth } from "./stores/applicationStore.js"
 import { libraryData } from "./stores/libraryStore.js";
 import { closeModal, openModal } from "./stores/modalStore.js";
 import { search } from "./stores/searchStore.js";
+import { LoadingModal } from "./components/modal/Loading.jsx";
 
 // import { checkForUpdatesAndNotify } from "@/services/updaterService.js";
 
@@ -50,14 +51,13 @@ function App() {
 
   // setting up effects for styles that can be changed in settings
   createEffect(() => {
-    document.body.style.setProperty(
-      "--text-color",
-      libraryData.userSettings.currentTheme === "light" ? "#000000" : "#ffffff",
-    );
+    document.documentElement.classList.remove("dark", "black");
 
-    libraryData.userSettings.currentTheme === "light"
-      ? document.documentElement.classList.remove("dark")
-      : document.documentElement.classList.add("dark");
+    const currentTheme = libraryData.userSettings.currentTheme;
+
+    if (currentTheme === "light") return;
+
+    document.documentElement.classList.add(currentTheme);
   });
 
   createEffect(() => {
@@ -78,13 +78,6 @@ function App() {
 
   createEffect(() => {
     document.body.style.setProperty("--border-radius", libraryData.userSettings.roundedBorders ? "6px" : "0px");
-  });
-
-  createEffect(() => {
-    document.body.style.setProperty(
-      "--outline-color",
-      libraryData.userSettings.currentTheme === "light" ? "#000000" : "#ffffff",
-    );
   });
 
   const searchResults = createMemo(() => {
@@ -144,9 +137,6 @@ function App() {
 
     initApplicationStore();
 
-    // loading app by default in dark mode so there's no bright flash of white while getData fetches preferences
-    document.documentElement.classList.add("dark");
-
     addEventListeners();
 
     try {
@@ -168,11 +158,11 @@ function App() {
       <ContextMenu />
       <ModalFrame />
 
-      <div class="flex gap-7.5">
+      <div class="relative h-screen overflow-hidden">
         <Show when={libraryData.userSettings.showSideBar === false && windowWidth() >= 1000}>
           <button
             type="button"
-            class="absolute! tooltip-delayed-left top-8 right-7 z-20 w-[25.25px] cursor-pointer p-2 duration-150 hover:bg-[#D6D6D6] motion-reduce:duration-0 dark:hover:bg-[#232323]"
+            class="fixed! tooltip-delayed-left card-hover top-8 right-7 z-20 w-[25.25px] cursor-pointer p-2 duration-150"
             onClick={() => {
               toggleSideBar();
             }}
@@ -182,18 +172,14 @@ function App() {
           </button>
         </Show>
         <Show when={libraryData.userSettings.showSideBar && windowWidth() >= 1000}>
-          <SideBar />
+          <div class="fixed top-0 left-0 z-10 w-[calc(10rem+10%)]">
+            <SideBar />
+          </div>
         </Show>
         <Show when={libraryData.folders.length === 0}>
-          <div
-            class={`absolute flex h-screen w-full flex-col items-center justify-center overflow-y-scroll py-5 pr-7.5 ${
-              libraryData.userSettings.showSideBar && windowWidth() >= 1000
-                ? "large:pl-[17%] pl-[23%]"
-                : "large:pl-7.5 pl-7.5"
-            }`}
-          >
+          <div class="absolute flex h-screen flex-col items-center justify-center overflow-y-scroll py-5 pr-7.5">
             <div class="z-50!">
-              <p class="text-[#000000] dark:text-[#ffffff80]">
+              <p class="subtle-text">
                 {translateText("hey there! thank you so much for using clear")}
                 <br />
                 <br />- {translateText("add some new games using the sidebar buttons")}
@@ -210,6 +196,7 @@ function App() {
                   data-tooltip={translateText("might not work perfectly!")}
                   onClick={handleImportSteamGames}
                 >
+                  {translateText("import Steam games")}
                   <Steam />
                 </button>
 
@@ -223,7 +210,9 @@ function App() {
 
         {/* seperating out pr and pl here and adding it back in the folder is because we want to fix the style for the tabbing */}
         <div
-          class={`h-screen w-full overflow-y-scroll rounded-none! py-5 ${!libraryData.userSettings.showSideBar || windowWidth() <= 1000 ? "pr-7 pl-5" : "pr-7"}`}
+          class={`h-screen overflow-y-scroll rounded-none! py-5 pr-7 ${
+            libraryData.userSettings.showSideBar && windowWidth() >= 1000 ? "pl-[calc(11.5rem+10%)]" : "pl-5"
+          }`}
         >
           <Show when={libraryData.folders && !search()}>
             <For each={libraryData.folders}>

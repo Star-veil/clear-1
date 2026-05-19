@@ -5,6 +5,7 @@ import { openGame } from "@/services/gameService.js";
 import { libraryData } from "@/stores/libraryStore";
 import { openModal } from "@/stores/modalStore.js";
 import { triggerToast } from "@/stores/toastStore.js";
+import { preloadGameModalImages } from "@/utils/preloadGameImages.js";
 import { translateText } from "@/utils/translateText";
 import { getImagePath } from "../../data/storage/imageStroage";
 import { setSelectedGame } from "../../stores/selectedGameStore";
@@ -28,12 +29,19 @@ export function GameCards(props) {
         );
 
         const grid = () => gridImageFile();
+        const preloadModalAssets = () => preloadGameModalImages(game());
 
         return (
           <button
             type="button"
             class="gameCard group relative w-full cursor-pointer bg-transparent p-0"
             id={index() === 0 ? "firstGameCard" : ""}
+            onPointerEnter={async () => {
+              await preloadModalAssets();
+            }}
+            onFocus={async () => {
+              await preloadModalAssets();
+            }}
             onPointerMove={(e) => {
               if (e.metaKey) {
                 console.log("holding meta");
@@ -55,7 +63,8 @@ export function GameCards(props) {
                 }
                 return;
               }
-              await setSelectedGame(gameId);
+              setSelectedGame(gameId);
+              await preloadModalAssets();
 
               openModal({
                 type: "gamePopUp",
@@ -76,16 +85,16 @@ export function GameCards(props) {
                     fallback={
                       <div class="relative flex items-center justify-center">
                         <Show when={!libraryData.userSettings.gameTitle}>
-                          <span class="max-w-[50%]! absolute z-100">{gameId}</span>
+                          <span class="absolute z-100 max-w-[50%]!">{gameId}</span>
                         </Show>
 
-                        <div class="relative z-10 mb-[7px] aspect-2/3 w-full bg-[#F1F1F1] group-hover:outline-hidden group-hover:outline-[#0000001f] group-hover:outline-2 dark:bg-[#1C1C1C] dark:group-hover:outline-[#ffffff1f]" />
+                        <div class="relative z-10 mb-[7px] aspect-2/3 w-full bg-media-placeholder group-hover:outline-2 group-hover:outline-game-outline-group group-hover:outline-hidden" />
                       </div>
                     }
                   >
                     <div class="relative flex items-center justify-center">
                       <img
-                        class="relative z-10 mb-[7px] aspect-2/3 w-full group-hover:outline-hidden group-hover:outline-[#0000001f] group-hover:outline-2 dark:group-hover:outline-[#ffffff1f]"
+                        class="relative z-10 mb-[7px] aspect-2/3 w-full group-hover:outline-2 group-hover:outline-game-outline-group group-hover:outline-hidden"
                         src={grid()}
                         alt=""
                       />
@@ -100,14 +109,14 @@ export function GameCards(props) {
                   fallback={
                     <div class="relative flex items-center justify-center">
                       <Show when={!libraryData.userSettings.gameTitle}>
-                        <span class="max-w-[50%]! absolute z-100">{gameId}</span>
+                        <span class="absolute z-100 max-w-[50%]!">{gameId}</span>
                       </Show>
-                      <div class="relative z-10 mb-[7px] aspect-2/3 w-full bg-[#F1F1F1] outline-hidden outline-[#0000001c] outline-4 duration-200 hover:outline-[#0000003b] motion-reduce:duration-100 dark:bg-[#1C1C1C] dark:outline-[#ffffff1a] dark:outline-2 dark:group-hover:outline-[#ffffff3b]" />
+                      <div class="relative z-10 mb-[7px] aspect-2/3 w-full bg-media-placeholder outline-4 outline-game-outline outline-hidden duration-200 hover:outline-game-outline-hover motion-reduce:duration-100 group-hover:outline-game-outline-hover" />
                     </div>
                   }
                 >
                   <img
-                    class="relative z-10 mb-[7px] outline-hidden outline-[#0000001c] outline-4 duration-200 hover:outline-[#0000003b] motion-reduce:duration-100 dark:outline-[#ffffff1a] dark:outline-2 dark:group-hover:outline-[#ffffff3b]"
+                    class="relative z-10 mb-[7px] outline-4 outline-game-outline outline-hidden duration-200 hover:outline-game-outline-hover motion-reduce:duration-100 group-hover:outline-game-outline-hover"
                     src={grid()}
                     alt=""
                     width="100%"
@@ -120,13 +129,13 @@ export function GameCards(props) {
                     src={grid()}
                     alt=""
                   />
-                  <div class="aspect-2/3 w-full bg-black opacity-0 dark:bg-white dark:opacity-10" alt="" />
+                  <div class="aspect-2/3 w-full bg-media-glow" alt="" />
                 </div>
               </div>
             </Show>
             <Show when={libraryData.userSettings.gameTitle}>
               <div class="flex items-start justify-between">
-                <span class="text-left text-[#000000] dark:text-white">{game().name}</span>
+                <span class="text-left text-foreground">{game().name}</span>
               </div>
             </Show>
           </button>
